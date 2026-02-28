@@ -57,6 +57,14 @@ services:
       - vaultwarden_web
 
 
+  recolecto_secuencia:
+    build: .
+    container_name: recolecto_secuencia
+    command: ["python", "-u", "recolecto_secuencia.py"]
+    restart: unless-stopped
+    networks:
+      - vaultwarden_web
+
 
   ollama:
     image: ollama/ollama:latest
