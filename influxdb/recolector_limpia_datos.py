@@ -121,7 +121,7 @@ def guardar_en_influxdb(lista_datos):
                     .field("latitud", float(dato["latitud"])) \
                     .field("longitud", float(dato["longitud"])) \
                     .field("nota_deporte", float(dato.get("nota_deporte", 0))) \
-                    .time(tiempo_prediccion, WritePrecision.S) \ # <- CRÍTICO: Inserta el dato en su tiempo futuro
+                    .time(tiempo_prediccion, WritePrecision.S) \
                     .field("rating", float(dato["nota_deporte"]))
                 
                 puntos_a_insertar.append(punto)
