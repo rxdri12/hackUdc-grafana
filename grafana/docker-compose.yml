@@ -1,0 +1,16 @@
+version: "3.8"
+services:
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      - GF_SERVER_ROOT_URL=https://grafana.svcamba.me
+    volumes:
+      - ./grafana_data:/var/lib/grafana
+    networks:
+      - vaultwarden_web
+
+networks:
+  vaultwarden_web:
+    external: true
