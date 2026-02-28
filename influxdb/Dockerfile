@@ -7,3 +7,5 @@ COPY recolector.py .
 COPY recolector_ica.py .
 COPY recolector_aemet.py .
 COPY recolector_limpia_datos.py .
+COPY mock_meteo_raw.json .
+COPY mock_meteo.json .
