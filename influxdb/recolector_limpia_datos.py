@@ -218,7 +218,7 @@ if __name__ == "__main__":
     if primeros:
         # 2. Cruzamos la base con el Clima. 
         # Pon use_mock=False si quieres tirar de la API real ahora mismo en vez del archivo local.
-        resultado_final = obtener_datos_meteo(primeros, use_mock=True)
+        resultado_final = obtener_datos_meteo(primeros, use_mock=False)
         
         # 3. Guardamos TODO junto en InfluxDB
         guardar_en_influxdb(resultado_final)
