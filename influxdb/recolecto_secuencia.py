@@ -36,37 +36,38 @@ def obtener_datos_ica():
         return []
 
 def simplificar_meteo(json_completo):
-    ahora_dt = datetime.now()
-    resumen = []
+    """
+    Ahora devuelve una LISTA DE LISTAS. 
+    Para cada estación, devuelve una lista con todos sus puntos horarios de previsión.
+    """
+    resumen_estaciones = []
 
     for feature in json_completo.get('features', []):
-        datos_climaticos = {}
-        min_diff_global = {}
+        previsiones_por_hora = {}
 
         for day in feature.get('properties', {}).get('days', []):
             for var in day.get('variables', []):
                 nombre_var = var['name']
 
-                if nombre_var not in min_diff_global:
-                    min_diff_global[nombre_var] = float('inf')
-
                 for v in var.get('values', []):
-                    tiempo_api_str = v['timeInstant'][:19]
-                    tiempo_api_dt = datetime.strptime(tiempo_api_str, "%Y-%m-%dT%H:%M:%S")
+                    # Ignorar tramos sin datos (nulos)
+                    if v.get('value') is None and v.get('moduleValue') is None:
+                        continue
 
-                    diff = abs((ahora_dt - tiempo_api_dt).total_seconds())
+                    # La API devuelve formato yyyy-MM-ddTHH:mm:ssZZ
+                    tiempo_api_str = v['timeInstant']
+                    
+                    if tiempo_api_str not in previsiones_por_hora:
+                        previsiones_por_hora[tiempo_api_str] = {'timestamp': tiempo_api_str}
 
-                    if diff < min_diff_global[nombre_var]:
-                        min_diff_global[nombre_var] = diff
+                    if nombre_var == 'wind':
+                        previsiones_por_hora[tiempo_api_str]['viento_velocidad'] = v['moduleValue']
+                    else:
+                        previsiones_por_hora[tiempo_api_str][nombre_var] = v['value']
 
-                        if nombre_var == 'wind':
-                            datos_climaticos['viento_velocidad'] = v['moduleValue']
-                        else:
-                            datos_climaticos[nombre_var] = v['value']
+        resumen_estaciones.append(list(previsiones_por_hora.values()))
 
-        resumen.append(datos_climaticos)
-
-    return resumen
+    return resumen_estaciones
 
 def evaluar_dia_deporte(estacion_meteo):
     temp = estacion_meteo.get('temperature', 16)
@@ -111,7 +112,6 @@ def evaluar_dia_deporte(estacion_meteo):
 def obtener_datos_meteo(estaciones_ica, use_mock=False):
     datos_fusionados_totales = []
 
-    # --- MODO PRUEBA LOCAL ---
     if use_mock:
         print("Cargando clima desde mock_meteo_raw.json...")
         try:
@@ -120,17 +120,18 @@ def obtener_datos_meteo(estaciones_ica, use_mock=False):
             
             datos_climaticos_simplificados = simplificar_meteo(data)
             
-            # ¡AQUÍ OCURRE LA MAGIA! Cruzamos las estaciones reales con el clima del mock
-            for estacion, clima in zip(estaciones_ica, datos_climaticos_simplificados):
-                estacion_fusionada = {**estacion, **clima}
-                datos_fusionados_totales.append(estacion_fusionada)
+            # Cruzamos 1 estación con N previsiones horarias
+            for estacion, previsiones in zip(estaciones_ica, datos_climaticos_simplificados):
+                for prev in previsiones:
+                    estacion_fusionada = {**estacion, **prev}
+                    datos_fusionados_totales.append(estacion_fusionada)
                 
             return datos_fusionados_totales
         except FileNotFoundError:
             print("Error: mock_meteo_raw.json no encontrado.")
             return []
 
-    # --- MODO PRODUCCIÓN (API REAL) ---
+    # OJO: Recuerda añadir &autoAdjustPosition=false si necesitas precisión exacta de coordenadas
     base_url = "https://servizos.meteogalicia.gal/apiv5/getNumericForecastInfo"
     tamaño_lote = 20
     chunks = [estaciones_ica[i:i + tamaño_lote] for i in range(0, len(estaciones_ica), tamaño_lote)]
@@ -141,7 +142,7 @@ def obtener_datos_meteo(estaciones_ica, use_mock=False):
         coords_list = [f"{item['longitud']},{item['latitud']}" for item in chunk]
         coords_param = ";".join(coords_list)
 
-        url_final = f"{base_url}?coords={coords_param}&API_KEY={METEO_TOKEN}"
+        url_final = f"{base_url}?coords={coords_param}&API_KEY={METEO_TOKEN}&autoAdjustPosition=false"
 
         try:
             responser = requests.get(url_final)
@@ -150,9 +151,10 @@ def obtener_datos_meteo(estaciones_ica, use_mock=False):
 
             datos_climaticos_simplificados = simplificar_meteo(data)
 
-            for estacion, clima in zip(chunk, datos_climaticos_simplificados):
-                estacion_fusionada = {**estacion, **clima}
-                datos_fusionados_totales.append(estacion_fusionada)
+            for estacion, previsiones in zip(chunk, datos_climaticos_simplificados):
+                for prev in previsiones:
+                    estacion_fusionada = {**estacion, **prev}
+                    datos_fusionados_totales.append(estacion_fusionada)
 
         except requests.exceptions.RequestException as e:
             print(f"Error procesando el lote {indice + 1}: {e}")
@@ -162,15 +164,17 @@ def obtener_datos_meteo(estaciones_ica, use_mock=False):
 def guardar_en_influxdb(lista_datos):
     with InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG) as client:
         write_api = client.write_api(write_options=SYNCHRONOUS)
-
         puntos_a_insertar = []
 
         for dato in lista_datos:
             dato = evaluar_dia_deporte(dato)
             try:
-                # HEMOS QUITADO LOS .get(..., 0.0)
-                # Ahora exigimos que el dato exista sí o sí. Si falta, fallará y nos avisará.
+                # Parseamos el timestamp ISO 8601 con offset de MeteoGalicia
+                dt_obj = datetime.fromisoformat(dato["timestamp"])
+
+                # Insertamos usando el tiempo de la predicción (.time), no el actual
                 punto = Point("estado_aire_meteo") \
+                    .time(dt_obj, WritePrecision.S) \
                     .tag("estacion", dato["estacion"]) \
                     .tag("estado_cielo", dato["sky_state"]) \
                     .tag("calidad_es", dato["icaEs"]) \
@@ -186,12 +190,16 @@ def guardar_en_influxdb(lista_datos):
                 puntos_a_insertar.append(punto)
 
             except KeyError as e:
-                print(f"Error: Faltan datos clave para insertar. Falta el campo: {e} en la estación {dato.get('estacion', 'Desconocida')}")
+                print(f"Error: Faltan datos clave para insertar. Falta: {e} en la estación {dato.get('estacion', 'Desconocida')} a las {dato.get('timestamp')}")
+                continue
+            except ValueError as e:
+                print(f"Error parseando fecha {dato.get('timestamp')}: {e}")
                 continue
 
         if puntos_a_insertar:
+            # Batching nativo de InfluxDB para no saturar si hay miles de puntos
             write_api.write(bucket=INFLUX_BUCKET, org=INFLUX_ORG, record=puntos_a_insertar)
-            print(f"¡ÉXITO! Se han guardado {len(puntos_a_insertar)} registros completos en InfluxDB.")
+            print(f"¡ÉXITO! Se han guardado {len(puntos_a_insertar)} predicciones horarias en InfluxDB.")
         else:
             print("No se ha guardado ningún dato.")
 
