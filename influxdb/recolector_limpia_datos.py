@@ -18,47 +18,47 @@ def extraer_serie_temporal(json_completo):
     En lugar de devolver el punto más cercano, devuelve la serie predictiva completa.
     """
     resumen_por_estacion = []
-    
+
     for feature in json_completo.get('features', []):
         series_dict = {} # Diccionario temporal: { "2026-02-28T13:00:00": { "temperature": 15, ... } }
-        
+
         for day in feature.get('properties', {}).get('days', []):
             for var in day.get('variables', []):
                 nombre_var = var['name']
-                
+
                 for v in var.get('values', []):
                     t_str = v['timeInstant'][:19] 
-                    
+
                     if t_str not in series_dict:
                         series_dict[t_str] = {}
-                    
+
                     # El viento usa moduleValue, el resto usa value
                     if nombre_var == 'wind':
                         series_dict[t_str]['viento_velocidad'] = v.get('moduleValue', 0)
                     else:
                         series_dict[t_str][nombre_var] = v.get('value')
-        
+
         # Convertimos el diccionario temporal a una lista de predicciones para esta estación
         lista_predicciones = []
         for t_str, vars_clima in series_dict.items():
             vars_clima['timeInstant'] = t_str
             lista_predicciones.append(vars_clima)
-            
+
         resumen_por_estacion.append(lista_predicciones)
-        
+
     return resumen_por_estacion
 
 def obtener_datos_meteo(estaciones_ica, use_mock=False):
     datos_fusionados_totales = []
-    
+
     if use_mock:
         print("Usando datos locales: mock_meteo_raw.json")
         try:
             with open('mock_meteo_raw.json', 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                
+
             series_temporales = extraer_serie_temporal(data)
-            
+
             # Asumiendo que el mock tiene el mismo número y orden de estaciones que estaciones_ica
             for estacion, lista_predicciones in zip(estaciones_ica, series_temporales):
                 for prediccion in lista_predicciones:
@@ -91,7 +91,7 @@ def obtener_datos_meteo(estaciones_ica, use_mock=False):
                 for prediccion in lista_predicciones:
                     estacion_fusionada = {**estacion, **prediccion}
                     datos_fusionados_totales.append(estacion_fusionada)
-                
+
         except requests.exceptions.RequestException as e:
             print(f"Error procesando el lote {indice + 1}: {e}")
 
@@ -101,32 +101,31 @@ def guardar_en_influxdb(lista_datos):
     with InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG) as client:
         write_api = client.write_api(write_options=SYNCHRONOUS)
         puntos_a_insertar = []
-        
+
         for dato in lista_datos:
             # Evaluamos el deporte para CADA punto horario predictivo
             dato = evaluar_dia_deporte(dato)
             try:
                 # Parseamos el tiempo de la predicción, no el actual
                 tiempo_prediccion = datetime.strptime(dato['timeInstant'], "%Y-%m-%dT%H:%M:%S")
-                
+
                 punto = Point("estado_aire_meteo") \
-                    .tag("estacion", dato.get("estacion", "Desconocida")) \
-                    .tag("estado_cielo", dato.get("sky_state", "Desconocido")) \
-                    .tag("calidad_es", dato.get("icaEs", "Desconocida")) \
-                    .field("ica", float(dato.get("ica", 0))) \
-                    .field("valor_ica", float(dato.get("valor", 0))) \
-                    .field("temperatura", float(dato.get("temperature", 0))) \
-                    .field("precipitacion", float(dato.get("precipitation_amount", 0))) \
-                    .field("viento_velocidad", float(dato.get("viento_velocidad", 0))) \
-                    .field("latitud", float(dato["latitud"])) \
-                    .field("longitud", float(dato["longitud"])) \
-                    .field("nota_deporte", float(dato.get("nota_deporte", 0))) \
-                    .time(tiempo_prediccion, WritePrecision.S) \
-                    .field("rating", float(dato["nota_deporte"]))
-                    .time(tiempo_prediccion, WritePrecision.S) # <- CRÍTICO: Inserta el dato en su tiempo futuro
-                
+                        .tag("estacion", dato.get("estacion", "Desconocida")) \
+                        .tag("estado_cielo", dato.get("sky_state", "Desconocido")) \
+                        .tag("calidad_es", dato.get("icaEs", "Desconocida")) \
+                        .field("ica", float(dato.get("ica", 0))) \
+                        .field("valor_ica", float(dato.get("valor", 0))) \
+                        .field("temperatura", float(dato.get("temperature", 0))) \
+                        .field("precipitacion", float(dato.get("precipitation_amount", 0))) \
+                        .field("viento_velocidad", float(dato.get("viento_velocidad", 0))) \
+                        .field("latitud", float(dato["latitud"])) \
+                        .field("longitud", float(dato["longitud"])) \
+                        .field("nota_deporte", float(dato.get("nota_deporte", 0))) \
+                        .field("rating", float(dato["nota_deporte"])) \
+                        .time(tiempo_prediccion, WritePrecision.S) # <- CRÍTICO: Inserta el dato en su tiempo futuro
+
                 puntos_a_insertar.append(punto)
-            
+
             except (ValueError, KeyError) as e:
                 print(f"Error procesando los datos de la estación {dato.get('estacion')} en tiempo {dato.get('timeInstant')}: {e}")
                 continue
@@ -142,8 +141,5 @@ def guardar_en_influxdb(lista_datos):
             print("No hay datos válidos para insertar.")
 
 # Ejecución
-primeros = obtener_datos_ica()
-if primeros:
-    # Cambia a True para probar con el mock
-    resultado_final = obtener_datos_meteo(primeros, use_mock=True) 
-    guardar_en_influxdb(resultado_final)
+resultado_final = obtener_datos_meteo(primeros, use_mock=True) 
+guardar_en_influxdb(resultado_final)
