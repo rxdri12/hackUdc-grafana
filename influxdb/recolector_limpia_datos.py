@@ -41,9 +41,6 @@ def obtener_datos_ica():
 def simplificar_meteo(json_completo):
     ahora_dt = datetime.now()
     resumen = []
-
-    with open('mock_meteo_raw.json', 'r', encoding='utf-8') as archivo:
-        json_completo = json.load(archivo)
     
     for feature in json_completo.get('features', []):
         # Ya no necesitamos guardar las coords aquí porque las tenemos en la lista ICA original
@@ -225,6 +222,7 @@ def tarea_diaria():
 with open('mock_meteo_raw.json', 'r', encoding='utf-8') as archivo:
     json_completo = json.load(archivo)
 
+print(json_completo)
 
 resumen = simplificar_meteo(json_completo)
 guardar_en_influxdb(resumen)
