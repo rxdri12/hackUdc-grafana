@@ -55,7 +55,7 @@ def simplificar_meteo(json_completo):
                         continue
 
                     # La API devuelve formato yyyy-MM-ddTHH:mm:ssZZ
-                    tiempo_api_str = v['timeInstant']
+                    tiempo_api_str = v['timeInstant'][:19]
                     
                     if tiempo_api_str not in previsiones_por_hora:
                         previsiones_por_hora[tiempo_api_str] = {'timestamp': tiempo_api_str}
@@ -170,7 +170,7 @@ def guardar_en_influxdb(lista_datos):
             dato = evaluar_dia_deporte(dato)
             try:
                 # Parseamos el timestamp ISO 8601 con offset de MeteoGalicia
-                dt_obj = datetime.fromisoformat(dato["timestamp"])
+                dt_obj = datetime.strptime(dato["timestamp"], "%Y-%m-%dT%H:%M:%S")
 
                 # Insertamos usando el tiempo de la predicción (.time), no el actual
                 punto = Point("estado_aire_meteo") \
