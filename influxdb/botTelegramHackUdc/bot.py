@@ -7,11 +7,18 @@ from telegram.constants import ChatAction
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from influxdb_client import InfluxDBClient
 import requests
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI
+
 
 # --- CONFIGURACIÓN ---
 TOKEN = os.getenv("TELEGRAM_TOKEN", "8736884501:AAH2e1BuT3FkKDTami4Cpjs7PGe-0HNl0_w")
 DB_PATH = "/app/data/usuarios.db"
+
 CSV_PATH = "concellos.csv"
+STRAVA_CLIENT_ID = "206827"
+URL_AUTENTICACION = f"https://www.strava.com/oauth/authorize?client_id={STRAVA_CLIENT_ID}&response_type=code&redirect_uri=https://strava.svcamba.me/api/strava/callback&scope=activity:read_all&state="
+
 
 # Ojo: Usamos /api/chat porque estás enviando el formato "messages"
 OLLAMA_URL = os.getenv("OLLAMA_HOST", "http://ollama:11434") + "/api/chat" 
@@ -32,7 +39,10 @@ def init_db():
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS usuarios (chat_id INTEGER PRIMARY KEY)''')
     c.execute('''CREATE TABLE IF NOT EXISTS suscripciones
-              (chat_id INTEGER, concello TEXT, PRIMARY KEY (chat_id, concello))''')
+              (chat_id INTEGER, concello TEXT, PRIMARY KEY (chat_id, concello))'''
+              
+              '''CREATE TABLE IF NOT EXISTS strava (chat_id INTEGER PRIMARY KEY, token TEXT)
+                ''')
     conn.commit()
     conn.close()
     print("✅ Base de datos SQLite inicializada.")
@@ -157,6 +167,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/estado - Tus suscripciones\n"
         "/concellos - Lista de municipios\n"
         "/resumen `CONCELLO` - Tiempo actual"
+        "/strava"
     )
     await update.message.reply_text(mensaje, parse_mode='Markdown')
 
@@ -303,6 +314,20 @@ async def enviar_alertas_automaticas(context: ContextTypes.DEFAULT_TYPE):
     conn.close()
 
 
+async def strava(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.message.chat.id
+    enlace_unico = f"{URL_AUTENTICACION}{chat_id}"
+
+    mensaje_html = (
+        f"🔗 <b>Vincular cuenta de Strava</b>\n\n"
+        f"Para avisarte si la calidad del aire es peligrosa en tus zonas de entrenamiento, "
+        f"necesito permiso para leer tus últimas rutas.\n\n"
+        f"👉 <a href='{enlace_unico}'>Haz clic aquí para autorizar</a>"
+    )
+    
+    await update.message.reply_html(mensaje_html)
+    
+
 if __name__ == '__main__':
     print("Iniciando sistema...")
     init_db()
@@ -314,6 +339,7 @@ if __name__ == '__main__':
     app.add_handler(CommandHandler("cancelar", cancelar))
     app.add_handler(CommandHandler("concellos", concellos))
     app.add_handler(CommandHandler("resumen", resumen))
+    app.add_handler(CommandHandler("strava", strava))
 
     # Programa la revisión cada 10 *60 segundos (10 minutos)
     app.job_queue.run_repeating(enviar_alertas_automaticas, interval=600, first=10)
