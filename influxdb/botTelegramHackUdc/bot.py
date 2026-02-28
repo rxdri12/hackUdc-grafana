@@ -68,16 +68,13 @@ def obtener_consejo_ia(concello, temp, hum, velocidadViento, ica):
 
 # --- INFLUXDB ---
 # --- INFLUXDB ---
-# --- INFLUXDB ---
 def get_meteo_actual(concello):
     """Consulta InfluxDB (Meteo e ICA por separado)"""
     client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
     query_api = client.query_api()
     datos_completos = {}
-    
-    logging.info(f"🔍 [METEOGALICIA] Iniciando búsqueda para el concello: {concello}")
-    
-    # 1. METEO GALICIA
+
+    # 1. METEO GALICIA (¡Atención al stop: 24h para leer el futuro!)
     query_meteo = f'''
     from(bucket: "{INFLUX_BUCKET}")
       |> range(start: -12h, stop: 24h)
@@ -86,24 +83,17 @@ def get_meteo_actual(concello):
       |> last()
       |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
     '''
-
-    logging.info(f"📄 Query MeteoGalicia a ejecutar:\n{query_meteo}")
     try:
         res_meteo = query_api.query(query_meteo)
-        logging.info(f"✅ Respuesta Query MeteoGalicia: {len(res_meteo)} tablas encontradas.")
-        
         if res_meteo and len(res_meteo) > 0:
-            rec = res_meteo[0].records[0] # <--- ¡PRIMERO ASIGNAMOS LA VARIABLE!
-            logging.info(f"📊 Datos crudos extraídos de MeteoGalicia: {rec.values}") # <--- ¡LUEGO LA IMPRIMIMOS!
+            rec = res_meteo[0].records[0]
             datos_completos['temperature'] = rec.values.get('temperature', 'N/A')
             datos_completos['relative_humidity'] = rec.values.get('relative_humidity', 'N/A')
             datos_completos['wind_module'] = rec.values.get('wind_module', 'N/A')
-        else:
-            logging.warning(f"⚠️ MeteoGalicia devolvió vacío para {concello}.")
     except Exception as e:
         logging.error(f"Error Influx Meteo: {e}")
 
-    # 2. ICA PREDICCIÓN
+    # 2. ICA PREDICCIÓN (Buscamos por la etiqueta 'concello')
     query_ica = f'''
     from(bucket: "{INFLUX_BUCKET}")
       |> range(start: -24h, stop: 24h)
@@ -111,17 +101,10 @@ def get_meteo_actual(concello):
       |> filter(fn: (r) => r["concello"] =~ /(?i){concello}/)
       |> last()
     '''
-
-    logging.info(f"📄 Query ICA a ejecutar:\n{query_ica}")
-
     try:
         res_ica = query_api.query(query_ica)
-        logging.info(f"✅ Respuesta Query ICA: {len(res_ica)} tablas encontradas.")
         if res_ica and len(res_ica) > 0:
             datos_completos['ica'] = res_ica[0].records[0].get_value()
-            logging.info(f"🍃 ICA extraído: {datos_completos['ica']}")
-        else:
-            logging.warning(f"⚠️ ICA devolvió vacío para {concello}.")
     except Exception as e:
         logging.error(f"Error Influx ICA: {e}")
 
@@ -129,7 +112,6 @@ def get_meteo_actual(concello):
 
     if datos_completos:
         datos_completos['fuente'] = 'MeteoGalicia'
-        logging.info(f"🚀 Devolviendo datos finales al bot: {datos_completos}")
         return datos_completos
     return None
 
@@ -138,8 +120,7 @@ def get_aemet_actual(concello):
     client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
     query_api = client.query_api()
 
-    logging.info(f"🔍 [AEMET] Iniciando búsqueda de respaldo para: {concello}")
-
+    # AEMET (Datos en tiempo real, -24h a now() está bien. Etiqueta: 'estacion')
     query = f'''
     from(bucket: "{INFLUX_BUCKET}")
       |> range(start: -24h)
@@ -148,16 +129,10 @@ def get_aemet_actual(concello):
       |> last()
       |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
     '''
-
-    logging.info(f"📄 Query AEMET a ejecutar:\n{query}")
-
     try:
         result = query_api.query(query)
-        logging.info(f"✅ Respuesta Query AEMET: {len(result)} tablas encontradas.")
-        
         if result and len(result) > 0:
-            rec = result[0].records[0] # <--- ¡CORREGIDO AQUÍ TAMBIÉN!
-            logging.info(f"📊 Datos crudos extraídos de AEMET: {rec.values}")
+            rec = result[0].records[0]
             return {
                 'temperature': rec.values.get('temperatura', 'N/A'),
                 'relative_humidity': rec.values.get('humedad', 'N/A'),
@@ -165,14 +140,13 @@ def get_aemet_actual(concello):
                 'ica': 'No medido por AEMET',
                 'fuente': 'AEMET'
             }
-        else:
-            logging.warning(f"⚠️ AEMET devolvió vacío para {concello}.")
         return None
     except Exception as e:
         logging.error(f"Error Influx AEMET: {e}")
         return None
     finally:
         client.close()
+
 # --- MANEJADORES DE COMANDOS ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje = (
