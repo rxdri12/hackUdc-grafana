@@ -42,7 +42,7 @@ def simplificar_meteo(json_completo):
     ahora_dt = datetime.now()
     resumen = []
 
-    with open('datos.json', 'r', encoding='utf-8') as archivo:
+    with open('mock_meteo_raw.json', 'r', encoding='utf-8') as archivo:
         json_completo = json.load(archivo)
     
     for feature in json_completo.get('features', []):
