@@ -9,3 +9,4 @@ COPY recolector_aemet.py .
 COPY recolector_limpia_datos.py .
 COPY mock_meteo_raw.json .
 COPY mock_meteo.json .
+COPY recolector_camaras.py .
