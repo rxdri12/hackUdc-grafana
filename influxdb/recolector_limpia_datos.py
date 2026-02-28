@@ -6,8 +6,8 @@ import time
 import schedule
 
 XUNTA_ICA_URL = "https://servizos.meteogalicia.gal/mgrss/caire/jsonICAActual.action"
-METEO_TOKEN = "O7d8a21OKeGZ20z9xN5YyMK4JM3U42sUq6MCpy8Jo90H9l3Y8We42Bpk8SMp5O9z"
-
+#METEO_TOKEN = "O7d8a21OKeGZ20z9xN5YyMK4JM3U42sUq6MCpy8Jo90H9l3Y8We42Bpk8SMp5O9z"
+METEO_TOKEN  =   "bZUUtsTTz6ShpFYbfu8q60YoLYQp29401sDwfszZAha84nWv6vfk5Q6FPojHRt9c"
 INFLUX_URL = "http://influxdb:8086"
 INFLUX_TOKEN = "l4dwrX-J3b7KCJVl9naBD2YTz9VsvE2zAAqML-hXJw9CSuNHu118qPQVTyEIzJwy32RcZPyaQFtuWM9pNb44vw=="
 INFLUX_ORG = "galicia_data"
@@ -121,7 +121,8 @@ def guardar_en_influxdb(lista_datos):
                     .field("latitud", float(dato["latitud"])) \
                     .field("longitud", float(dato["longitud"])) \
                     .field("nota_deporte", float(dato.get("nota_deporte", 0))) \
-                    .time(tiempo_prediccion, WritePrecision.S) # <- CRÍTICO: Inserta el dato en su tiempo futuro
+                    .time(tiempo_prediccion, WritePrecision.S) \ # <- CRÍTICO: Inserta el dato en su tiempo futuro
+                    .field("rating", float(dato["nota_deporte"]))
                 
                 puntos_a_insertar.append(punto)
             
