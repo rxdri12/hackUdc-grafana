@@ -222,13 +222,15 @@ def tarea_diaria():
         guardar_en_influxdb(resultado_final)
     print("Tarea finalizada.")
 """
+with open('mock_meteo_raw.json', 'r', encoding='utf-8') as archivo:
+    json_completo = json.load(archivo)
 
 
-resumen = simplificar_meteo(None)
+resumen = simplificar_meteo(json_completo)
 guardar_en_influxdb(resumen)
 
 # Programar la tarea todos los días a las 12:40
-schedule.every().day.at("12:40").do(tarea_diaria)
+#schedule.every().day.at("12:40").do(tarea_diaria)
 
 if __name__ == "__main__":
     print("Script iniciado. Esperando para ejecutarse a las 12:40...")
