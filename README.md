@@ -44,12 +44,15 @@ Nosotros mismos hemos hecho uso de un dominio propio y hemos levantado todo en u
 
 3. **Levantar el proyecto:**
     ```bash
+
+   sudo docker network create vaultwarden_web
     cd grafana
     docker compose up -d
     cd ../influxdb
     docker compose up -d --build
     ```
+Despues de esto hay que entrar en localhost:8096 y añadir el bucket mixed_bucket
 
 4. **Resultado:**
-    Tendra su bot de telegram preparado (según el nombre que le haya dado al crearlo), en grafana.sudominio.es podrá ver los dahsboards.
+    Tendra su bot de telegram preparado (según el nombre que le haya dado al crearlo), para ver los dashboards hay que importarlos manuealmente. No hemos sido capaces de hacerlos estaticos.
 
