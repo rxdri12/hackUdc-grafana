@@ -9,7 +9,7 @@ import os
 # --- CONFIGURACIÓN AEMET ---
 AEMET_API_KEY = os.getenv("AEMET_API_KEY")
 URL_AEMET = "https://opendata.aemet.es/opendata/api/observacion/convencional/todas"
-º
+
 # --- CONFIGURACIÓN INFLUXDB ---
 INFLUX_URL = os.getenv("INFLUX_URL", "http://influxdb:8086")
 INFLUX_TOKEN = os.getenv("INFLUX_TOKEN")

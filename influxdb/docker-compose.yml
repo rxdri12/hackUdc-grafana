@@ -1,107 +1,217 @@
 version: "3.8"
+
 services:
+
   influxdb:
+
     image: influxdb:latest
+
     container_name: influxdb
+
     restart: unless-stopped
+    ports:
+      - "8086:8086"
+
     environment:
+
       - DOCKER_INFLUXDB_INIT_MODE=setup
+
       - DOCKER_INFLUXDB_INIT_USERNAME=admin
+
       - DOCKER_INFLUXDB_INIT_PASSWORD=somoslosmejores # ¡Cámbiala!
+
       - DOCKER_INFLUXDB_INIT_ORG=galicia_data
+
       - DOCKER_INFLUXDB_INIT_BUCKET=meteo_bucket
+      
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUX_TOKEN}
+
     volumes:
+
       - ./influxdb_data:/var/lib/influxdb2
+
     networks:
+
       - vaultwarden_web
+
+
 
   recolector_meteo:
+
     build: .
+
     container_name: recolector_meteo
+
     command: ["python", "-u", "recolector.py"]
+
     restart: unless-stopped
+
     env_file:
+
       - .env
+
     networks:
+
       - vaultwarden_web
+
+
 
   recolector_ica:
+
     build: .
+
     container_name: recolector_ica
+
     command: ["python", "-u", "recolector_ica.py"]
+
     restart: unless-stopped
+
     env_file:
+
       - .env 
+
     networks:
+
       - vaultwarden_web
+
+
 
   recolector_aemet:
+
     build: .
+
     container_name: recolector_aemet
+
     command: ["python", "-u", "recolector_aemet.py"]
+
     restart: unless-stopped
+
     env_file:
+
       - .env 
+
     networks:
+
       - vaultwarden_web
 
+
+
   recolector_limpia_datos:
+
     build: .
+
     container_name: recolector_limpia_datos
+
     command: ["python", "-u", "recolector_limpia_datos.py"]
+
     restart: unless-stopped
+
     env_file:
+
       - .env 
+
     networks:
+
       - vaultwarden_web
+
+
+
 
 
   recolector_camaras:
+
     build: .
+
     container_name: recolector_camaras
+
     command: ["python", "-u", "recolector_camaras.py"]
+
     restart: unless-stopped
+
     env_file:
+
       - .env 
+
     networks:
+
       - vaultwarden_web
+
+
+
 
 
   recolecto_secuencia:
+
     build: .
+
     container_name: recolecto_secuencia
+
     command: ["python", "-u", "recolecto_secuencia.py"]
+
     restart: unless-stopped
+
     env_file:
+
       - .env 
+
     networks:
+
       - vaultwarden_web
+
+
+
 
 
   ollama:
+
     image: ollama/ollama:latest
+
     container_name: ollama
+
     restart: unless-stopped
+
     volumes:
+
       - ./ollama_data:/root/.ollama
+
     networks:
+
       - vaultwarden_web
 
+
+
   telegram_bot:
+
     build: ./botTelegramHackUdc
+
     container_name: telegram_bot
+
     restart: unless-stopped
+
     environment:
+
       - OLLAMA_HOST=http://ollama:11434
+
     env_file:
+
       - .env 
+
     volumes:
+
       - ./bot_data:/app/data  # Carpeta para SQLite
+
     networks:
+
       - vaultwarden_web
+
     depends_on:
+
       - ollama
+
       - influxdb
+
 networks:
+
   vaultwarden_web:
+
     external: true
