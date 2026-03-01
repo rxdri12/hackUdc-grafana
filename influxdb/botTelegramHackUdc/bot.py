@@ -9,7 +9,7 @@ from influxdb_client import InfluxDBClient
 import requests
 
 # --- CONFIGURACIÓN ---
-TOKEN = os.getenv("TELEGRAM_TOKEN", "8736884501:AAH2e1BuT3FkKDTami4Cpjs7PGe-0HNl0_w")
+TOKEN = os.getenv("TELEGRAM_TOKEN")
 DB_PATH = "/app/data/usuarios.db"
 CSV_PATH = "concellos.csv"
 
