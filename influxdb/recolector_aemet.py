@@ -4,14 +4,15 @@ import time
 from datetime import datetime
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
+import os 
 
 # --- CONFIGURACIÓN AEMET ---
-AEMET_API_KEY = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzLnZjYW1iYUB1ZGMuZXMiLCJqdGkiOiIxMWNlOTAzOS1jOWRiLTQ0NTktODBjYy0zODkwOGRlNTA4YWMiLCJpc3MiOiJBRU1FVCIsImlhdCI6MTc3MjI1MzY3MywidXNlcklkIjoiMTFjZTkwMzktYzlkYi00NDU5LTgwY2MtMzg5MDhkZTUwOGFjIiwicm9sZSI6IiJ9.GXfB_Zvj4FGwowmfxo73TKrftPj1y5LzYM1TB33r25E"
+AEMET_API_KEY = os.getenv("AEMET_API_KEY")
 URL_AEMET = "https://opendata.aemet.es/opendata/api/observacion/convencional/todas"
-
+º
 # --- CONFIGURACIÓN INFLUXDB ---
-INFLUX_URL = "http://influxdb:8086"
-INFLUX_TOKEN = "l4dwrX-J3b7KCJVl9naBD2YTz9VsvE2zAAqML-hXJw9CSuNHu118qPQVTyEIzJwy32RcZPyaQFtuWM9pNb44vw=="
+INFLUX_URL = os.getenv("INFLUX_URL", "http://influxdb:8086")
+INFLUX_TOKEN = os.getenv("INFLUX_TOKEN")
 ORG = "galicia_data"
 BUCKET = "meteo_bucket"
 

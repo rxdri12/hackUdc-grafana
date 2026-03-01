@@ -5,8 +5,8 @@ from datetime import datetime
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 
-# --- CONFIGURACIÓN ---
-METEO_TOKEN = "O7d8a21OKeGZ20z9xN5YyMK4JM3U42sUq6MCpy8Jo90H9l3Y8We42Bpk8SMp5O9z"
+# --- CONFIGURACIÓN --
+METEO_TOKEN = os.getenv("METEO_TOKEN")
 # Coordenadas de ejemplo (A Coruña): Longitud, Latitud
 LON, LAT = "-8.41", "43.36" 
 # Variables a extraer (separadas por comas)
@@ -15,8 +15,8 @@ VARIABLES = "temperature,wind,precipitation_amount,relative_humidity,sky_state,s
 # URL base de la API v5
 API_URL = f"https://servizos.meteogalicia.gal/apiv5/getNumericForecastInfo?coords={LON},{LAT}&variables={VARIABLES}&API_KEY={METEO_TOKEN}"
 
-INFLUX_URL = "http://influxdb:8086"
-INFLUX_TOKEN = "l4dwrX-J3b7KCJVl9naBD2YTz9VsvE2zAAqML-hXJw9CSuNHu118qPQVTyEIzJwy32RcZPyaQFtuWM9pNb44vw==" # Generado dentro de InfluxDB, el token de influxdb
+INFLUX_URL = os.getenv("INFLUX_URL", "http://influxdb:8086")
+INFLUX_TOKEN = os.getenv("INFLUX_TOKEN")
 ORG = "galicia_data"
 BUCKET = "meteo_bucket"
 

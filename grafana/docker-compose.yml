@@ -4,6 +4,8 @@ services:
     image: grafana/grafana:latest
     container_name: grafana
     restart: unless-stopped
+    env_file:
+      - ../influxdb/.env
     environment:
       - GF_SERVER_ROOT_URL=https://grafana.svcamba.me
       # Le decimos dónde está el motor de fotos
@@ -14,8 +16,10 @@ services:
       # --- MAGIA PARA EL HACKATHON: ACCESO PÚBLICO ---
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+        #- GF_PATHS_PROVISIONING=/etc/grafana/provisioning
     volumes:
       - ./grafana_data:/var/lib/grafana
+        #- ./provisioning:/etc/grafana/provisioning
     networks:
       - vaultwarden_web
     depends_on:

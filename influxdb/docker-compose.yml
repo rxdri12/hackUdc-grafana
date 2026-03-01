@@ -20,6 +20,8 @@ services:
     container_name: recolector_meteo
     command: ["python", "-u", "recolector.py"]
     restart: unless-stopped
+    env_file:
+      - .env
     networks:
       - vaultwarden_web
 
@@ -28,6 +30,8 @@ services:
     container_name: recolector_ica
     command: ["python", "-u", "recolector_ica.py"]
     restart: unless-stopped
+    env_file:
+      - .env 
     networks:
       - vaultwarden_web
 
@@ -36,6 +40,8 @@ services:
     container_name: recolector_aemet
     command: ["python", "-u", "recolector_aemet.py"]
     restart: unless-stopped
+    env_file:
+      - .env 
     networks:
       - vaultwarden_web
 
@@ -44,6 +50,8 @@ services:
     container_name: recolector_limpia_datos
     command: ["python", "-u", "recolector_limpia_datos.py"]
     restart: unless-stopped
+    env_file:
+      - .env 
     networks:
       - vaultwarden_web
 
@@ -53,6 +61,8 @@ services:
     container_name: recolector_camaras
     command: ["python", "-u", "recolector_camaras.py"]
     restart: unless-stopped
+    env_file:
+      - .env 
     networks:
       - vaultwarden_web
 
@@ -62,6 +72,8 @@ services:
     container_name: recolecto_secuencia
     command: ["python", "-u", "recolecto_secuencia.py"]
     restart: unless-stopped
+    env_file:
+      - .env 
     networks:
       - vaultwarden_web
 
@@ -80,9 +92,9 @@ services:
     container_name: telegram_bot
     restart: unless-stopped
     environment:
-      - TELEGRAM_TOKEN=8736884501:AAH2e1BuT3FkKDTami4Cpjs7PGe-0HNl0_w
-      - INFLUX_TOKEN=l4dwrX-J3b7KCJVl9naBD2YTz9VsvE2zAAqML-hXJw9CSuNHu118qPQVTyEIzJwy32RcZPyaQFtuWM9pNb44vw==
       - OLLAMA_HOST=http://ollama:11434
+    env_file:
+      - .env 
     volumes:
       - ./bot_data:/app/data  # Carpeta para SQLite
     networks:

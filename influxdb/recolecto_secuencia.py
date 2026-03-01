@@ -5,12 +5,13 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 import time
 import schedule
 import json
+import os 
 
 XUNTA_ICA_URL = "https://servizos.meteogalicia.gal/mgrss/caire/jsonICAActual.action"
-METEO_TOKEN = "O7d8a21OKeGZ20z9xN5YyMK4JM3U42sUq6MCpy8Jo90H9l3Y8We42Bpk8SMp5O9z"
+METEO_TOKEN = os.getenv("METEO_TOKEN")
 
-INFLUX_URL = "http://influxdb:8086"
-INFLUX_TOKEN = "l4dwrX-J3b7KCJVl9naBD2YTz9VsvE2zAAqML-hXJw9CSuNHu118qPQVTyEIzJwy32RcZPyaQFtuWM9pNb44vw=="
+INFLUX_URL = os.getenv("INFLUX_URL", "http://influxdb:8086")
+INFLUX_TOKEN = os.getenv("INFLUX_TOKEN")
 INFLUX_ORG = "galicia_data"
 INFLUX_BUCKET = "mixed_bucket"
 

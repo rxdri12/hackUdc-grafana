@@ -6,14 +6,15 @@ import os
 from datetime import datetime
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
+import os
 
 # --- CONFIGURACIÓN ---
 URL_ICA_ACTUAL = "https://servizos.meteogalicia.gal/mgrss/caire/jsonICAActual.action"
 URL_ICA_PRED = "https://servizos.meteogalicia.gal/mgrss/caire/jsonPrediccionIcaDiarioConcello.action"
 CSV_FILE = "concellos.csv"
 
-INFLUX_URL = "http://influxdb:8086"
-INFLUX_TOKEN = "l4dwrX-J3b7KCJVl9naBD2YTz9VsvE2zAAqML-hXJw9CSuNHu118qPQVTyEIzJwy32RcZPyaQFtuWM9pNb44vw=="
+INFLUX_URL = os.getenv("INFLUX_URL", "http://influxdb:8086")
+INFLUX_TOKEN = os.getenv("INFLUX_TOKEN")
 ORG = "galicia_data"
 BUCKET = "meteo_bucket"
 
